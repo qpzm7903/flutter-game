@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app_info.dart';
+import 'game_session.dart';
 import 'game/cards.dart';
 import 'game/match.dart';
 import 'game/game_record.dart';
@@ -59,15 +60,16 @@ class TablePage extends StatefulWidget {
 }
 
 class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
-  Match match = Match();
-  PracticePuzzle? activePuzzle;
-  PlayerProfile profile = PlayerProfile.memory();
+  GameSession session = GameSession(PlayerProfile.memory());
+  Match get match => session.match;
+  PracticePuzzle? get activePuzzle => session.puzzle;
+  PlayerProfile get profile => session.profile;
   Difficulty get nextDifficulty => profile.difficulty;
   List<GameRecord> get history => profile.history;
   final TableGame surface = TableGame();
   final Set<PlayingCard> selected = {};
   Timer? timer;
-  bool paused = false, background = false, recorded = false, statsReady = false;
+  bool paused = false, background = false, statsReady = false;
   int get totalScore => profile.totalScore;
   int get games => profile.games;
   int get wins => profile.wins;
@@ -83,9 +85,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   Future<void> _load() async {
     final loaded = await PlayerProfile.load();
     if (!mounted) return;
-    profile = loaded;
-    match = Match(difficulty: nextDifficulty);
-    if (!mounted) return;
+    session = GameSession(loaded);
     setState(() => statsReady = true);
     _schedule();
   }
@@ -103,7 +103,11 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   void _schedule() {
     timer?.cancel();
     if (!mounted || !statsReady || paused || background || match.turn == 0 || match.phase == Phase.finished) return;
+    final expectedSession = session;
+    final expectedGeneration = session.generation;
     timer = Timer(const Duration(milliseconds: 850), () {
+      if (!mounted || !identical(session, expectedSession) || session.generation != expectedGeneration ||
+          paused || background || match.phase == Phase.finished || match.turn == 0) { return; }
       final who = match.turn;
       match.computerStep();
       AppLog.info('${names[who]} ${match.actions[who]}');
@@ -111,17 +115,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     });
   }
   void _changed() {
-    if (match.phase == Phase.finished && !recorded) {
-      recorded = true;
-      if (activePuzzle == null) {
-        profile.record(GameRecord(time: DateTime.now(), landlord: match.landlord == 0,
-          won: match.humanWon, score: match.scores[0], difficulty: match.difficulty));
-      } else if (match.humanWon) {
-        profile.completePuzzle(activePuzzle!.id);
-      }
-      AppLog.info('mode=${activePuzzle?.id ?? 'normal'} won=${match.humanWon}');
-      AppLog.info('结算 winner=${match.winner} landlord=${match.landlord} scores=${match.scores}');
-    }
+    session.settle();
     setState(() {
       selected.removeWhere((c) => !match.hands[0].contains(c));
       message = match.phase == Phase.bidding ? '叫分越高，结算基础分越高；全不叫会重新发牌' :
@@ -145,15 +139,13 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
       message = hint.isEmpty ? (activePuzzle == null ? '没有能压过的牌，可以选择不出' : '提示：选择不出，让队友继续出牌。') : '已选中建议牌，点击「出牌」确认';
     });
   }
-  void _restart() {
+  void _resetView() {
     timer?.cancel();
-    setState(() { match = activePuzzle?.create() ?? Match(difficulty: nextDifficulty); selected.clear(); recorded = false; message = activePuzzle?.goal ?? '新牌局开始，请叫分'; });
-    AppLog.info('重新开始牌局'); _schedule();
+    setState(() { selected.clear(); message = session.initialMessage; });
+    _schedule();
   }
-  void _normalGame() {
-    setState(() => activePuzzle = null);
-    _restart();
-  }
+  void _restart() { session.restart(); _resetView(); }
+  void _normalGame() { session.startNormal(); _resetView(); }
   void _practice() => _dialog('残局练习', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     const Text('练习不计入普通战绩。选择题目会结束当前未完成牌局，可反复重试。'),
     const SizedBox(height: 12),
@@ -163,8 +155,8 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
         semanticLabel: profile.completedPuzzles.contains(puzzle.id) ? '已通关' : '开始练习', color: gold),
       onTap: () {
         Navigator.pop(context);
-        setState(() => activePuzzle = puzzle);
-        _restart();
+        session.startPractice(puzzle);
+        _resetView();
       },
     )),
   ]));
@@ -183,9 +175,10 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     if (match.phase == Phase.finished) { _restart(); return; }
     timer?.cancel(); setState(() => paused = true); surface.pauseEngine();
     final restart = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
-      title: const Text('重新发牌？'), content: const Text('当前牌局不会计入战绩。'),
+      title: Text(activePuzzle == null ? '重新发牌？' : '重新练习？'),
+      content: Text(activePuzzle == null ? '当前牌局不会计入战绩。' : '当前练习会从初始局面重新开始。'),
       actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('继续本局')),
-        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('重新发牌'))],
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(activePuzzle == null ? '重新发牌' : '再练一次'))],
     ));
     if (!mounted) return;
     setState(() => paused = false);
@@ -223,7 +216,9 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     style: TextStyle(height: 1.65),
   ));
   void _logs() => _dialog('诊断日志 · $appVersion', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    SelectableText(AppLog.location), const SizedBox(height: 12),
+    Text('牌局：${session.mode} · 代次：${session.generation}'),
+    Text(profile.saveError == null ? '资料保存正常' : '资料保存失败，已保留内存数据'),
+    const SizedBox(height: 12), SelectableText(AppLog.location), const SizedBox(height: 12),
     Wrap(spacing: 8, children: [
       OutlinedButton(onPressed: () async {
         await Clipboard.setData(ClipboardData(text: '${AppLog.location}\n${AppLog.text}'));
@@ -271,7 +266,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
           case 'logs': _logs();
         }
       }, itemBuilder: (context) => [
-        const PopupMenuItem(value: 'new', child: Text('重新发牌')),
+        PopupMenuItem(value: 'new', child: Text(activePuzzle == null ? '重新发牌' : '重新练习')),
         const PopupMenuItem(value: 'settings', child: Text('难度设置')),
         const PopupMenuItem(value: 'history', child: Text('最近战绩')),
         const PopupMenuItem(value: 'practice', child: Text('残局练习')),
