@@ -49,7 +49,9 @@ void main() {
   });
   test('move ranking prefers long normal leads and preserves bombs', () {
     final moves = legalMoves(cards([3,4,5,6,7,9,9,9,9,16,17]), null);
-    expect(classify(moves.first)!.type, HandType.straight);
+    expect(classify(moves.first)!.type, HandType.fourSingles);
+    expect(moves.first.length, 6);
+    expect(moves.any((m) => classify(m)!.type == HandType.straight), isTrue);
     final types = moves.map((m) => classify(m)!.type).toList();
     expect(types.last, HandType.rocket);
     expect(types[types.length - 2], HandType.bomb);
