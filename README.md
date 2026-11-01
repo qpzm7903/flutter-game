@@ -1,0 +1,19 @@
+# 闲庭斗地主
+
+Flutter + Flame 开发的中文离线斗地主，一名玩家与两名本地电脑对战。支持 Windows 10+、Android 手机/折叠屏/平板和 Web。无账号、广告、联网对战或真钱功能。
+
+## 0.1.0（开发中，尚未发布）
+
+- 三人叫分、地主底牌、完整经典牌型、提示出牌、农民合作策略。
+- 炸弹翻倍、春天/反春天、阵营结算及本机积分战绩。
+- 自适应中文牌桌、可点击手牌、规则说明、离开应用暂停。
+- Windows 日志：`%USERPROFILE%/.xianting-doudizhu/logs/doudizhu.log`；Android：应用文档目录下 `logs/doudizhu.log`。界面「诊断日志」可查看路径、复制日志，Web 可下载浏览器日志。
+- 原生日志单文件约 1 MiB，保留一个轮转备份；Web 日志限制约 64K 字符，不上传。
+
+点击手牌选中，再点「出牌」；「提示」选中建议牌；两人连续不出后由上一位出牌者自由领出。详细地方规则约定见游戏内说明与 [plan.md](plan.md)。
+
+## 开发与构建
+
+仅在 `main` 开发，所有 Flutter 分析、测试、构建在 Actions 执行，不要求本地安装 SDK。首版参考 [flutter-snake](https://github.com/g-ai-002/flutter-snake)（MIT），保留其授权与 GitHub/Gitea 构建发布结构。Android SDK：min 35 / target 37 / compile 37。
+
+GitHub 手动运行构建完成验证后，推送 `v0.1.0` 标签触发三端 Release。发布地址：[Releases](https://github.com/qpzm7903/flutter-game/releases)。具体 CI 状态与配置差异记录于 [plan.md](plan.md)。
