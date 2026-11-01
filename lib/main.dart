@@ -294,9 +294,10 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: selected.contains(c) ? const Color(0xFFC28B25) : cream, width: 2)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(c.label, style: TextStyle(fontSize: c.rank > 15 ? 13 : 20, height: 1.2,
-                  color: c.red ? const Color(0xFFB92F38) : const Color(0xFF17382E), fontWeight: FontWeight.bold)),
-                Text(c.suit, style: TextStyle(fontSize: 18, color: c.red ? const Color(0xFFB92F38) : const Color(0xFF17382E))),
+                SizedBox(height: 24, child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft,
+                  child: Text(c.label, maxLines: 1, style: TextStyle(fontSize: c.rank > 15 ? 13 : 20, height: 1.2,
+                    color: c.red ? const Color(0xFFB92F38) : const Color(0xFF17382E), fontWeight: FontWeight.bold)))),
+                Text(c.suit, style: TextStyle(fontSize: 18, height: 1.2, color: c.red ? const Color(0xFFB92F38) : const Color(0xFF17382E))),
                 if (wide && selected.contains(c)) const Icon(Icons.check, size: 12, color: Color(0xFF17382E)),
               ])),
           ),
