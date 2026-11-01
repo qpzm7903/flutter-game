@@ -39,6 +39,14 @@ void main() {
     expect(rocket.beats(rocket), isFalse);
     expect(classify(cards([4,5,6,7,8,9]))!.beats(classify(cards([3,4,5,6,7]))), isFalse);
   });
+  test('ambiguous airplane can respond as airplane with single wings', () {
+    final hand = cards([4,4,4,5,5,5,6,6,6,7,7,7]);
+    final target = classify(cards([3,3,3,4,4,4,5,5,5,8,9,10]))!;
+    expect(classify(hand)?.type, HandType.plane);
+    expect(classify(hand, target: target)?.type, HandType.planeSingles);
+    expect(classify(hand, target: target)!.beats(target), isTrue);
+    expect(legalMoves(hand, target).any((m) => m.length == hand.length), isTrue);
+  });
   test('deals unique cards and grants landlord bottom cards', () {
     final m = Match(random: Random(7));
     expect([...m.hands.expand((h) => h), ...m.bottom].toSet().length, 54);
@@ -84,7 +92,7 @@ void main() {
           final move = m.suggest(m.turn, cooperate: true);
           if (move.isNotEmpty) {
             expect(move.every(m.hands[m.turn].contains), isTrue);
-            expect(classify(move)!.beats(m.target), isTrue);
+            expect(classify(move, target: m.target)!.beats(m.target), isTrue);
           } else { expect(m.target, isNotNull); }
         }
         m.computerStep();

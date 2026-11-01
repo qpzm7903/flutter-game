@@ -42,7 +42,27 @@ Map<int, List<PlayingCard>> groupCards(Iterable<PlayingCard> cards) {
   return groups;
 }
 
-Combination? classify(List<PlayingCard> cards) {
+Combination? classify(List<PlayingCard> cards, {Combination? target}) {
+  final primary = _classifyDefault(cards);
+  if (primary == null || target == null || primary.beats(target)) return primary;
+  // Four consecutive triples can also be three triples with three single wings.
+  // During a response, select a valid interpretation matching the table's shape.
+  if (target.type == HandType.planeSingles && cards.length == target.length && cards.length % 4 == 0) {
+    final groups = groupCards(cards);
+    final count = cards.length ~/ 4;
+    if (count >= 2 && !(groups.containsKey(16) && groups.containsKey(17))) {
+      for (int end = 14; end >= count + 2; end--) {
+        if (List.generate(count, (i) => end - i).every((rank) => groups[rank]?.length == 3)) {
+          final candidate = Combination(HandType.planeSingles, end, cards.length);
+          if (candidate.beats(target)) return candidate;
+        }
+      }
+    }
+  }
+  return primary;
+}
+
+Combination? _classifyDefault(List<PlayingCard> cards) {
   final n = cards.length;
   if (n == 0 || cards.toSet().length != n) return null;
   final g = groupCards(cards);
@@ -91,7 +111,7 @@ List<List<PlayingCard>> legalMoves(List<PlayingCard> hand, Combination? target) 
   final ranks = groups.keys.toList()..sort();
   final found = <String, List<PlayingCard>>{};
   void add(List<PlayingCard> cards) {
-    final shape = classify(cards);
+    final shape = classify(cards, target: target);
     if (shape == null || !shape.beats(target)) return;
     final ids = cards.map((c) => c.id).toList()..sort();
     found[ids.join(',')] = cards;
@@ -136,7 +156,7 @@ List<List<PlayingCard>> legalMoves(List<PlayingCard> hand, Combination? target) 
   }
   final moves = found.values.toList();
   moves.sort((a, b) {
-    final x = classify(a)!, y = classify(b)!;
+    final x = classify(a, target: target)!, y = classify(b, target: target)!;
     int cost(Combination c) => c.type == HandType.rocket ? 2 : c.type == HandType.bomb ? 1 : 0;
     final special = cost(x).compareTo(cost(y));
     if (special != 0) return special;

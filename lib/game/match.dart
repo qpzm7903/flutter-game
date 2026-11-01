@@ -67,7 +67,7 @@ class Match {
     if (phase != Phase.playing || turn != player) return '请等待你的回合';
     if (cards.isEmpty) return '请先选择要出的牌';
     if (!cards.every(hands[player].contains) || cards.toSet().length != cards.length) return '所选手牌无效';
-    final shape = classify(cards);
+    final shape = classify(cards, target: target);
     if (shape == null) return '这些牌不能组成有效牌型';
     if (!shape.beats(target)) return '请出同牌型更大的牌，或使用炸弹';
     hands[player].removeWhere(cards.contains);
