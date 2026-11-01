@@ -2,7 +2,7 @@
 
 Flutter + Flame 开发的中文离线斗地主，一名玩家与两名本地电脑对战。支持 Windows 10+、Android 手机/折叠屏/平板和 Web。无账号、广告、联网对战或真钱功能。
 
-## 0.3.0（验证中）
+## 0.3.0
 
 菜单新增三道离线残局：顺子收官、炸弹夺权、队友接力。题目展示目标及对手明牌，可重试、返回普通牌局并保存通关状态；练习不影响普通战绩。
 
@@ -32,7 +32,7 @@ Flutter + Flame 开发的中文离线斗地主，一名玩家与两名本地电�
 
 仅在 `main` 开发，所有 Flutter 分析、测试、构建在 Actions 执行，不要求本地安装 SDK。首版参考 [flutter-snake](https://github.com/g-ai-002/flutter-snake)（MIT），保留其授权与 GitHub/Gitea 构建发布结构。Android SDK：min 35 / target 37 / compile 37。
 
-GitHub CI 已通过 26 个测试及三端构建；[v0.1.0 正式 Release](https://github.com/qpzm7903/flutter-game/releases/tag/v0.1.0) 已包含三端下载件。发布地址：[Releases](https://github.com/qpzm7903/flutter-game/releases)。具体 CI 状态与配置差异记录于 [plan.md](plan.md)。
+GitHub CI 已通过 32 个测试及三端构建；[v0.1.0 正式 Release](https://github.com/qpzm7903/flutter-game/releases/tag/v0.1.0) 已包含三端下载件。发布地址：[Releases](https://github.com/qpzm7903/flutter-game/releases)。具体 CI 状态与配置差异记录于 [plan.md](plan.md)。
 
 Web ZIP 解压后可用现有静态服务器访问；渲染资源和中文后备字体均随包提供。字体来自 Noto Sans SC，采用 OFL 许可，见 `assets/fonts/OFL.txt`；不在运行时调用字体服务。
 
