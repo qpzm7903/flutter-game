@@ -1,7 +1,7 @@
 name: flutter_game
 description: 闲庭斗地主 - 离线三人经典牌局
 publish_to: 'none'
-version: 0.2.1
+version: 0.3.0
 environment:
   sdk: '>=3.13.7 <4.0.0'
 dependencies:

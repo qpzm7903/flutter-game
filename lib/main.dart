@@ -9,6 +9,7 @@ import 'app_info.dart';
 import 'game/cards.dart';
 import 'game/match.dart';
 import 'game/game_record.dart';
+import 'game/practice.dart';
 import 'game/table_game.dart';
 import 'services/app_log.dart';
 import 'services/player_profile.dart';
@@ -59,6 +60,7 @@ class TablePage extends StatefulWidget {
 
 class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   Match match = Match();
+  PracticePuzzle? activePuzzle;
   PlayerProfile profile = PlayerProfile.memory();
   Difficulty get nextDifficulty => profile.difficulty;
   List<GameRecord> get history => profile.history;
@@ -111,8 +113,13 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   void _changed() {
     if (match.phase == Phase.finished && !recorded) {
       recorded = true;
-      profile.record(GameRecord(time: DateTime.now(), landlord: match.landlord == 0,
-        won: match.humanWon, score: match.scores[0], difficulty: match.difficulty));
+      if (activePuzzle == null) {
+        profile.record(GameRecord(time: DateTime.now(), landlord: match.landlord == 0,
+          won: match.humanWon, score: match.scores[0], difficulty: match.difficulty));
+      } else if (match.humanWon) {
+        profile.completePuzzle(activePuzzle!.id);
+      }
+      AppLog.info('mode=${activePuzzle?.id ?? 'normal'} won=${match.humanWon}');
       AppLog.info('结算 winner=${match.winner} landlord=${match.landlord} scores=${match.scores}');
     }
     setState(() {
@@ -132,17 +139,35 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   }
   void _pass() { if (match.pass(0)) { selected.clear(); AppLog.info('你不出'); _changed(); } }
   void _hint() {
-    final hint = match.suggest(0);
+    final hint = match.suggest(0, cooperate: activePuzzle != null);
     setState(() {
       selected..clear()..addAll(hint);
-      message = hint.isEmpty ? '没有能压过的牌，可以选择不出' : '已选中建议牌，点击「出牌」确认';
+      message = hint.isEmpty ? (activePuzzle == null ? '没有能压过的牌，可以选择不出' : '提示：选择不出，让队友继续出牌。') : '已选中建议牌，点击「出牌」确认';
     });
   }
   void _restart() {
     timer?.cancel();
-    setState(() { match = Match(difficulty: nextDifficulty); selected.clear(); recorded = false; message = '新牌局开始，请叫分'; });
+    setState(() { match = activePuzzle?.create() ?? Match(difficulty: nextDifficulty); selected.clear(); recorded = false; message = activePuzzle?.goal ?? '新牌局开始，请叫分'; });
     AppLog.info('重新开始牌局'); _schedule();
   }
+  void _normalGame() {
+    setState(() => activePuzzle = null);
+    _restart();
+  }
+  void _practice() => _dialog('残局练习', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    const Text('练习不计入普通战绩。选择题目会结束当前未完成牌局，可反复重试。'),
+    const SizedBox(height: 12),
+    ...practicePuzzles.map((puzzle) => ListTile(contentPadding: EdgeInsets.zero,
+      title: Text(puzzle.title), subtitle: Text(puzzle.goal),
+      trailing: Icon(profile.completedPuzzles.contains(puzzle.id) ? Icons.check_circle : Icons.play_circle_outline,
+        semanticLabel: profile.completedPuzzles.contains(puzzle.id) ? '已通关' : '开始练习', color: gold),
+      onTap: () {
+        Navigator.pop(context);
+        setState(() => activePuzzle = puzzle);
+        _restart();
+      },
+    )),
+  ]));
   Future<void> _dialog(String title, Widget content) async {
     timer?.cancel(); setState(() => paused = true); surface.pauseEngine();
     await showDialog<void>(context: context, builder: (context) => AlertDialog(
@@ -240,15 +265,19 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
           case 'new': if (statsReady) _newGame();
           case 'settings': if (statsReady) _settings();
           case 'history': if (statsReady) _history();
+          case 'practice': if (statsReady) _practice();
+          case 'normal': if (statsReady) _normalGame();
           case 'rules': _rules();
           case 'logs': _logs();
         }
-      }, itemBuilder: (context) => const [
-        PopupMenuItem(value: 'new', child: Text('重新发牌')),
-        PopupMenuItem(value: 'settings', child: Text('难度设置')),
-        PopupMenuItem(value: 'history', child: Text('最近战绩')),
-        PopupMenuItem(value: 'rules', child: Text('玩法说明')),
-        PopupMenuItem(value: 'logs', child: Text('诊断日志')),
+      }, itemBuilder: (context) => [
+        const PopupMenuItem(value: 'new', child: Text('重新发牌')),
+        const PopupMenuItem(value: 'settings', child: Text('难度设置')),
+        const PopupMenuItem(value: 'history', child: Text('最近战绩')),
+        const PopupMenuItem(value: 'practice', child: Text('残局练习')),
+        if (activePuzzle != null) const PopupMenuItem(value: 'normal', child: Text('返回普通牌局')),
+        const PopupMenuItem(value: 'rules', child: Text('玩法说明')),
+        const PopupMenuItem(value: 'logs', child: Text('诊断日志')),
       ]),
   ]);
   Widget _opponent(int player) {
@@ -269,7 +298,14 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     width: double.infinity, constraints: BoxConstraints(minHeight: wide ? 205 : 156),
     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Wrap(alignment: WrapAlignment.center, spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+      if (activePuzzle != null) ...[
+        Text('残局练习 · ${activePuzzle!.title}', style: const TextStyle(color: gold, fontSize: 18)),
+        const SizedBox(height: 8), Text(activePuzzle!.goal, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        for (int i = 1; i < 3; i++) Text('${names[i]}（${match.landlord == i ? '地主' : '农民'}）：${match.hands[i].map((c) => c.label).join(' ')}'),
+        TextButton(onPressed: _normalGame, child: const Text('返回普通牌局')),
+      ],
+      if (activePuzzle == null) Wrap(alignment: WrapAlignment.center, spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
         const Text('底牌', style: TextStyle(color: pale, fontSize: 12)),
         ...match.bottom.map((c) => match.landlord < 0
           ? const SizedBox(width: 28, height: 36, child: DecoratedBox(decoration: BoxDecoration(
@@ -279,11 +315,11 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
         Text('  ${match.highestBid} 分 × ${match.multiplier}', style: const TextStyle(color: gold)),
       ]), const SizedBox(height: 18),
       if (match.phase == Phase.finished) ...[
-        Text(match.humanWon ? '这局，赢得漂亮' : '好牌，总在下一局', textAlign: TextAlign.center,
+        Text(activePuzzle != null ? (match.humanWon ? '挑战成功' : '再想一步') : (match.humanWon ? '这局，赢得漂亮' : '好牌，总在下一局'), textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 25, color: gold, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text('${match.winner == match.landlord ? '地主' : '农民'}获胜${match.spring ? ' · 春天翻倍' : ''}  /  本局 ${match.scores[0] > 0 ? '+' : ''}${match.scores[0]} 分'),
-        const SizedBox(height: 12), FilledButton.icon(onPressed: _restart, icon: const Icon(Icons.refresh), label: const Text('再来一局')),
+        Text(activePuzzle != null ? '练习不计入战绩${match.humanWon ? ' · 已记录通关' : ''}' : '${match.winner == match.landlord ? '地主' : '农民'}获胜${match.spring ? ' · 春天翻倍' : ''}  /  本局 ${match.scores[0] > 0 ? '+' : ''}${match.scores[0]} 分'),
+        const SizedBox(height: 12), FilledButton.icon(onPressed: _restart, icon: const Icon(Icons.refresh), label: Text(activePuzzle == null ? '再来一局' : '再练一次')),
       ] else if (match.table.isNotEmpty) ...[
         Text('${names[match.lastPlayer]} · ${match.target?.type.label ?? ''}', style: const TextStyle(fontSize: 12, color: pale)),
         const SizedBox(height: 8),

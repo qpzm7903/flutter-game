@@ -23,6 +23,31 @@ class Match {
   int deals = 0;
   Match({Random? random, this.difficulty = Difficulty.standard}) : random = random ?? Random() { deal(); }
 
+
+  /// A validated endgame position uses the same play/pass/win rules as a full deal.
+  Match.position({required List<List<PlayingCard>> hands, int landlord = 0,
+    int turn = 0, List<PlayingCard> table = const [], int lastPlayer = -1})
+      : random = Random(0), difficulty = Difficulty.standard {
+    final cards = [...hands.expand((h) => h), ...table];
+    if (hands.length != 3 || hands.any((h) => h.isEmpty) ||
+        landlord < 0 || landlord > 2 || turn < 0 || turn > 2 ||
+        cards.toSet().length != cards.length ||
+        (table.isNotEmpty && (classify(table) == null || lastPlayer < 0 || lastPlayer > 2 || lastPlayer == turn))) {
+      throw ArgumentError('Invalid practice position');
+    }
+    this.hands = hands.map((h) => [...h]).toList();
+    for (final hand in this.hands) { sortCards(hand); }
+    this.landlord = landlord;
+    this.turn = turn;
+    this.table = [...table];
+    this.lastPlayer = table.isEmpty ? -1 : lastPlayer;
+    target = classify(table);
+    if (table.isNotEmpty) playedTurns[lastPlayer] = 1;
+    phase = Phase.playing;
+    highestBid = 1;
+    bottom = [];
+  }
+
   void deal() {
     final deck = List.generate(54, PlayingCard.new)..shuffle(random);
     hands = List.generate(3, (i) => deck.sublist(i * 17, i * 17 + 17));

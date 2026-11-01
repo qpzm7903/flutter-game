@@ -15,6 +15,8 @@ class PlayerProfile {
   Difficulty _difficulty = Difficulty.standard;
   Difficulty get difficulty => _difficulty;
   final List<GameRecord> _history = [];
+  final Set<String> _completed = {};
+  Set<String> get completedPuzzles => Set.unmodifiable(_completed);
   List<GameRecord> get history => List.unmodifiable(_history);
   Future<void> _pending = Future.value();
   Future<void> get flush => _pending;
@@ -55,6 +57,8 @@ class PlayerProfile {
           } catch (e, s) { AppLog.error(e, s); }
         }
       }
+      final completed = snapshot?['practice'];
+      if (completed is List) profile._completed.addAll(completed.whereType<String>());
       // Migration does not delete legacy data until a valid new snapshot exists.
       if (snapshot == null) await profile._save();
       return profile;
@@ -76,8 +80,13 @@ class PlayerProfile {
     if (_history.length > 20) _history.removeRange(20, _history.length);
     return _save();
   }
+  Future<void> completePuzzle(String id) {
+    if (!_completed.add(id)) return flush;
+    return _save();
+  }
   Future<void> _save() {
     final snapshot = jsonEncode({'schema': 1, 'score': totalScore, 'games': games, 'wins': wins,
+      'practice': _completed.toList(),
       'difficulty': difficulty.name, 'history': _history.map((r) => r.encode()).toList()});
     _pending = _pending.then((_) async {
       if (_preferences == null) throw StateError('Local storage unavailable');
