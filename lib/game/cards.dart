@@ -109,12 +109,12 @@ Combination? _classifyDefault(List<PlayingCard> cards) {
 List<List<PlayingCard>> legalMoves(List<PlayingCard> hand, Combination? target) {
   final groups = groupCards(hand);
   final ranks = groups.keys.toList()..sort();
-  final found = <String, List<PlayingCard>>{};
+  final found = <String, ({List<PlayingCard> cards, Combination shape})>{};
   void add(List<PlayingCard> cards) {
     final shape = classify(cards, target: target);
     if (shape == null || !shape.beats(target)) return;
     final ids = cards.map((c) => c.id).toList()..sort();
-    found[ids.join(',')] = cards;
+    found[ids.join(',')] = (cards: cards, shape: shape);
   }
   void attach(List<PlayingCard> body, int amount, bool pairs) {
     final bodyRanks = body.map((c) => c.rank).toSet();
@@ -156,12 +156,12 @@ List<List<PlayingCard>> legalMoves(List<PlayingCard> hand, Combination? target) 
   }
   final moves = found.values.toList();
   moves.sort((a, b) {
-    final x = classify(a, target: target)!, y = classify(b, target: target)!;
+    final x = a.shape, y = b.shape;
     int cost(Combination c) => c.type == HandType.rocket ? 2 : c.type == HandType.bomb ? 1 : 0;
     final special = cost(x).compareTo(cost(y));
     if (special != 0) return special;
-    if (target == null && a.length != b.length) return b.length.compareTo(a.length);
+    if (target == null && a.cards.length != b.cards.length) return b.cards.length.compareTo(a.cards.length);
     return x.rank.compareTo(y.rank);
   });
-  return moves;
+  return moves.map((move) => move.cards).toList();
 }

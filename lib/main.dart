@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_info.dart';
 import 'game/cards.dart';
 import 'game/match.dart';
 import 'game/table_game.dart';
@@ -183,13 +184,13 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     '点击手牌选中，再点出牌；提示只选牌，不会自动打出。离开应用会暂停，返回后继续。电脑使用自己的手牌及公开信息进行决策。积分没有现金价值。',
     style: TextStyle(height: 1.65),
   ));
-  void _logs() => _dialog('诊断日志 · 0.1.0', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  void _logs() => _dialog('诊断日志 · $appVersion', Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     SelectableText(AppLog.location), const SizedBox(height: 12),
     Wrap(spacing: 8, children: [
       OutlinedButton(onPressed: () async {
         await Clipboard.setData(ClipboardData(text: '${AppLog.location}\n${AppLog.text}'));
       }, child: const Text('复制诊断')),
-      if (kIsWeb) const OutlinedButton(onPressed: AppLog.download, child: const Text('下载日志')),
+      if (kIsWeb) const OutlinedButton(onPressed: AppLog.download, child: Text('下载日志')),
     ]), const SizedBox(height: 12), SelectableText(AppLog.text, style: const TextStyle(fontSize: 12)),
   ]));
 

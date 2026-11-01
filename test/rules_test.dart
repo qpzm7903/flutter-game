@@ -47,6 +47,21 @@ void main() {
     expect(classify(hand, target: target)!.beats(target), isTrue);
     expect(legalMoves(hand, target).any((m) => m.length == hand.length), isTrue);
   });
+  test('move ranking prefers long normal leads and preserves bombs', () {
+    final moves = legalMoves(cards([3,4,5,6,7,9,9,9,9,16,17]), null);
+    expect(classify(moves.first)!.type, HandType.straight);
+    final types = moves.map((m) => classify(m)!.type).toList();
+    expect(types.last, HandType.rocket);
+    expect(types[types.length - 2], HandType.bomb);
+    expect(moves.map((m) => (m.map((c) => c.id).toList()..sort()).join(',')).toSet().length, moves.length);
+  });
+  test('responses prefer lowest matching card before special hands', () {
+    final target = classify(cards([6]))!;
+    final moves = legalMoves(cards([7,10,10,10,10,16,17]), target);
+    expect(moves.first.single.rank, 7);
+    expect(classify(moves.last)!.type, HandType.rocket);
+    expect(moves.every((m) => classify(m, target: target)!.beats(target)), isTrue);
+  });
   test('deals unique cards and grants landlord bottom cards', () {
     final m = Match(random: Random(7));
     expect({...m.hands.expand((h) => h), ...m.bottom}.length, 54);
