@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'match.dart';
+import 'difficulty.dart';
 
 class GameRecord {
   final DateTime time;
@@ -13,6 +13,11 @@ class GameRecord {
     'won': won, 'score': score, 'difficulty': difficulty.name});
   factory GameRecord.decode(String text) {
     final data = jsonDecode(text) as Map<String, dynamic>;
+    final score = data['score'];
+    final won = data['won'];
+    if (score is! int || won is! bool || score == 0 || (score > 0) != won) {
+      throw const FormatException('Invalid round result');
+    }
     return GameRecord(time: DateTime.parse(data['time'] as String), landlord: data['landlord'] as bool,
       won: data['won'] as bool, score: data['score'] as int,
       difficulty: Difficulty.values.byName(data['difficulty'] as String));

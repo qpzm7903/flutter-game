@@ -5,13 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'app_info.dart';
 import 'game/cards.dart';
 import 'game/match.dart';
 import 'game/game_record.dart';
 import 'game/table_game.dart';
 import 'services/app_log.dart';
+import 'services/player_profile.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,16 +59,17 @@ class TablePage extends StatefulWidget {
 
 class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   Match match = Match();
-  Difficulty nextDifficulty = Difficulty.standard;
-  final List<GameRecord> history = [];
+  PlayerProfile profile = PlayerProfile.memory();
+  Difficulty get nextDifficulty => profile.difficulty;
+  List<GameRecord> get history => profile.history;
   final TableGame surface = TableGame();
   final Set<PlayingCard> selected = {};
   Timer? timer;
   bool paused = false, background = false, recorded = false, statsReady = false;
-  int totalScore = 0, games = 0, wins = 0;
+  int get totalScore => profile.totalScore;
+  int get games => profile.games;
+  int get wins => profile.wins;
   String message = '先看看手牌，再决定是否叫地主';
-  SharedPreferences? prefs;
-  Future<void> saves = Future.value();
 
   @override
   void initState() {
@@ -78,23 +79,10 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     AppLog.info('开始牌局');
   }
   Future<void> _load() async {
-    try {
-      final p = await SharedPreferences.getInstance();
-      if (!mounted) return;
-      prefs = p;
-      nextDifficulty = Difficulty.values.firstWhere((d) => d.name == p.getString('difficulty'),
-        orElse: () => Difficulty.standard);
-      match = Match(difficulty: nextDifficulty);
-      for (final text in (p.getStringList('history') ?? []).take(20)) {
-        try { history.add(GameRecord.decode(text)); } catch (e, s) { AppLog.error(e, s); }
-      }
-      final stored = p.getStringList('stats') ?? [];
-      if (stored.length == 3) {
-        totalScore = int.tryParse(stored[0]) ?? 0;
-        games = int.tryParse(stored[1]) ?? 0;
-        wins = int.tryParse(stored[2]) ?? 0;
-      }
-    } catch (e, s) { AppLog.error(e, s); }
+    final loaded = await PlayerProfile.load();
+    if (!mounted) return;
+    profile = loaded;
+    match = Match(difficulty: nextDifficulty);
     if (!mounted) return;
     setState(() => statsReady = true);
     _schedule();
@@ -123,20 +111,8 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   void _changed() {
     if (match.phase == Phase.finished && !recorded) {
       recorded = true;
-      totalScore += match.scores[0]; games++; if (match.humanWon) wins++;
-      history.insert(0, GameRecord(time: DateTime.now(), landlord: match.landlord == 0,
+      profile.record(GameRecord(time: DateTime.now(), landlord: match.landlord == 0,
         won: match.humanWon, score: match.scores[0], difficulty: match.difficulty));
-      if (history.length > 20) history.removeRange(20, history.length);
-      final recent = history.map((record) => record.encode()).toList();
-      final snapshot = ['$totalScore', '$games', '$wins'];
-      saves = saves.then((_) async {
-        if (prefs != null && !await prefs!.setStringList('stats', snapshot)) {
-          throw StateError('战绩保存失败');
-        }
-        if (prefs != null && !await prefs!.setStringList('history', recent)) {
-          throw StateError('战绩保存失败');
-        }
-      }).catchError((Object e, StackTrace s) { AppLog.error(e, s); });
       AppLog.info('结算 winner=${match.winner} landlord=${match.landlord} scores=${match.scores}');
     }
     setState(() {
@@ -198,12 +174,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
         items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.label))).toList(),
         onChanged: (value) {
           if (value == null) return;
-          setState(() => nextDifficulty = value); refresh(() {});
-          saves = saves.then((_) async {
-            if (prefs != null && !await prefs!.setString('difficulty', value.name)) {
-              throw StateError('难度保存失败');
-            }
-          }).catchError((Object e, StackTrace s) { AppLog.error(e, s); });
+          setState(() { profile.setDifficulty(value); }); refresh(() {});
           AppLog.info('下局难度 ${value.name}');
         }),
       const SizedBox(height: 12),

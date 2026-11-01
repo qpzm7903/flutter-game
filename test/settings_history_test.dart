@@ -28,7 +28,7 @@ void main() {
     await tester.tap(find.text('轻松').last);
     await animate(tester);
     expect(find.text('当前牌局：标准'), findsOneWidget);
-    expect((await SharedPreferences.getInstance()).getString('difficulty'), 'easy');
+    expect((await SharedPreferences.getInstance()).getString('profile.v1'), contains('easy'));
     await tester.tap(find.text('返回牌桌'));
     await animate(tester);
     await tester.pumpWidget(const SizedBox.shrink());

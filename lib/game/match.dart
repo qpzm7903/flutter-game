@@ -1,11 +1,9 @@
 import 'dart:math';
 import 'cards.dart';
+import 'difficulty.dart';
+import 'bot_strategy.dart';
+export 'difficulty.dart';
 
-enum Difficulty {
-  easy('轻松'), standard('标准');
-  const Difficulty(this.label);
-  final String label;
-}
 
 enum Phase { bidding, playing, finished }
 
@@ -62,12 +60,7 @@ class Match {
   }
 
   int computerBid(int player) {
-    final hand = hands[player];
-    final groups = groupCards(hand);
-    final strength = hand.where((c) => c.rank >= 15).length +
-        groups.values.where((v) => v.length == 4).length * 2;
-    final score = strength >= 5 ? 3 : strength >= 4 ? 2 : strength >= 2 ? 1 : 0;
-    return score > highestBid ? score : 0;
+    return chooseBid(hands[player], highestBid);
   }
 
   String? play(int player, List<PlayingCard> cards) {
@@ -113,24 +106,9 @@ class Match {
   }
 
   List<PlayingCard> suggest(int player, {bool cooperate = false, bool simple = false}) {
-    final moves = legalMoves(hands[player], target);
-    if (moves.isEmpty) return [];
-    // Decide using own cards and public roles/counts only; never inspect an opponent's cards.
-    final winning = moves.where((m) => m.length == hands[player].length);
-    if (winning.isNotEmpty) return winning.first;
-    if (simple && target == null) {
-      final singles = moves.where((m) => m.length == 1).toList()
-        ..sort((a, b) => a.single.rank.compareTo(b.single.rank));
-      return singles.first;
-    }
-    if (cooperate && target != null && player != landlord && lastPlayer != landlord) return [];
-    if (target?.type == HandType.single &&
-        List.generate(3, (i) => i).any((i) => i != player && hands[i].length == 1 &&
-            (i == landlord || player == landlord))) {
-      final singles = moves.where((m) => classify(m)!.type == HandType.single).toList();
-      if (singles.isNotEmpty) return singles.last;
-    }
-    return moves.first;
+    return chooseMove(hand: hands[player], target: target, player: player, landlord: landlord,
+      lastPlayer: lastPlayer, counts: hands.map((h) => h.length).toList(),
+      cooperate: cooperate, simple: simple);
   }
 
   void computerStep() {
