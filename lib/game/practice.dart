@@ -30,5 +30,5 @@ const practicePuzzles = [
   PracticePuzzle(id: 'bomb', title: '炸弹夺权', goal: '桌上是大于所有普通单张的 2。夺回出牌权，再处理小牌。',
     ranks: [[9,9,9,9,3], [14], [5]], tableRanks: [15], lastPlayer: 2),
   PracticePuzzle(id: 'team', title: '队友接力', goal: '你是农民，队友刚出了 A。让队友保住出牌权，赢下这一局。',
-    ranks: [[3,16], [13], [4]], tableRanks: [14], landlord: 1, lastPlayer: 2),
+    ranks: [[3,5,16], [13], [4]], tableRanks: [14], landlord: 1, lastPlayer: 2),
 ];

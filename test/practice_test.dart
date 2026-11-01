@@ -48,7 +48,7 @@ void main() {
     expect(match.humanWon, isTrue); expect(match.winner, 2);
     final wrong = practicePuzzles[2].create();
     wrong.play(0, [wrong.hands[0].first]); bots(wrong);
-    wrong.play(0, [...wrong.hands[0]]); bots(wrong);
+    wrong.play(0, [wrong.hands[0].last]); bots(wrong);
     expect(wrong.phase, Phase.finished); expect(wrong.humanWon, isFalse);
   });
   test('completion persists without adding ordinary games, scores or history', () async {
