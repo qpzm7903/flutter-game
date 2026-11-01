@@ -16,7 +16,7 @@ Windows 日志位于 `%USERPROFILE%/.xianting-doudizhu/logs/doudizhu.log`，Andr
 
 ## 最近版本
 
-### 0.3.1（验证中）
+### 0.3.1
 
 统一普通牌局与残局会话，保证每局只结算一次；重试、切换模式与电脑回合使用代次校验，补充后台暂停/恢复验证和模式诊断。
 
@@ -46,4 +46,4 @@ Windows 日志位于 `%USERPROFILE%/.xianting-doudizhu/logs/doudizhu.log`，Andr
 
 Web ZIP 解压后用静态服务器访问，支持任意目录；渲染资源和中文后备字体随包提供。Noto Sans SC 字体采用 OFL，许可位于 `assets/fonts/OFL.txt`。
 
-验证覆盖完整模拟牌局、全部牌型、320/360/800/1400 宽度布局、资料迁移和保存恢复、三题解法及错误路线、日志轮转，以及浏览器实际操作。最新进度和 CI 证据见 [plan.md](plan.md)。Windows/Android 已在 CI 构建，尚未进行本次环境中的真机安装测试。
+验证覆盖完整模拟牌局、全部牌型、320/360/800/1400 宽度布局、资料迁移和保存恢复、三题解法及错误路线、日志轮转，以及浏览器实际操作。当前 37 个测试与三端构建已通过。最新进度和 CI 证据见 [plan.md](plan.md)。Windows/Android 已在 CI 构建，尚未进行本次环境中的真机安装测试。
