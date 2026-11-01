@@ -125,7 +125,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     setState(() {
       selected.removeWhere((c) => !match.hands[0].contains(c));
       message = match.phase == Phase.bidding ? '叫分越高，结算基础分越高；全不叫会重新发牌' :
-          match.phase == Phase.finished ? '本局结束，积分仅记录在这台设备上' :
+          match.phase == Phase.finished ? (activePuzzle == null ? '本局结束，积分仅记录在这台设备上' : '练习结束，可再练一次或返回普通牌局') :
           match.turn == 0 ? (match.target == null ? '轮到你自由出牌，不能不出' : '轮到你出牌，也可以选择不出') : '${names[match.turn]}正在思考…';
     });
     _schedule();
