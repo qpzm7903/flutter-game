@@ -287,7 +287,7 @@ jobs:
         run: |
           set -euo pipefail
           # 归档用默认根路径 base href：解压后在目录内起静态服务器即可访问
-          flutter build web --release
+          flutter build web --release --no-web-resources-cdn
           du -sh build/web
 
       - name: 🗜️ 打包 Web 产物

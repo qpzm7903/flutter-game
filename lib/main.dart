@@ -160,6 +160,19 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     if (!background) surface.resumeEngine();
     _schedule();
   }
+  Future<void> _newGame() async {
+    if (match.phase == Phase.finished) { _restart(); return; }
+    timer?.cancel(); setState(() => paused = true); surface.pauseEngine();
+    final restart = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+      title: const Text('重新发牌？'), content: const Text('当前牌局不会计入战绩。'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('继续本局')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('重新发牌'))],
+    ));
+    if (!mounted) return;
+    setState(() => paused = false);
+    if (!background) surface.resumeEngine();
+    if (restart == true) { _restart(); } else { _schedule(); }
+  }
   void _rules() => _dialog('经典三人斗地主', const Text(
     '一副 54 张牌，每人 17 张，地主额外获得 3 张底牌。轮流叫 1、2、3 分，只能加叫或不叫；3 分立即确定地主，全不叫则重发。\n\n'
     '地主先出。单张、对子、三张、三带一、三带一对、顺子（至少 5 张）、连对（至少 3 对）、飞机、飞机带单/对、四带二单/两对均可出。顺子、连对和飞机主体不能含 2 或王。\n\n'
@@ -206,6 +219,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
       Text('闲庭斗地主', style: TextStyle(color: cream, fontSize: wide ? 28 : 22, fontWeight: FontWeight.w700)),
       const Text('一桌好牌，片刻闲趣', style: TextStyle(color: pale, fontSize: 12)),
     ])),
+    IconButton(tooltip: '重新发牌', onPressed: statsReady ? _newGame : null, icon: const Icon(Icons.refresh)),
     IconButton(tooltip: '玩法说明', onPressed: _rules, icon: const Icon(Icons.help_outline)),
     IconButton(tooltip: '诊断日志', onPressed: _logs, icon: const Icon(Icons.receipt_long_outlined)),
   ]);

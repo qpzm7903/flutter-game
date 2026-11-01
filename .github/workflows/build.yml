@@ -338,7 +338,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          flutter build web --release --base-href "/${{ env.APP_NAME }}/${VERSION_PATH}/"
+          flutter build web --release --no-web-resources-cdn --base-href "/${{ env.APP_NAME }}/${VERSION_PATH}/"
           du -sh build/web
 
       - name: 🗜️ 打包 Web 产物

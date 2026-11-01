@@ -4,10 +4,10 @@ import 'package:path_provider/path_provider.dart';
 class LogSink {
   File? _file;
   String get location => _file?.path ?? '文件日志不可用，可复制诊断';
-  Future<void> init() async {
-    final root = Platform.isWindows && Platform.environment['USERPROFILE'] != null
+  Future<void> init({Directory? rootDirectory}) async {
+    final root = rootDirectory ?? (Platform.isWindows && Platform.environment['USERPROFILE'] != null
         ? Directory('${Platform.environment['USERPROFILE']}/.xianting-doudizhu')
-        : await getApplicationDocumentsDirectory();
+        : await getApplicationDocumentsDirectory());
     final dir = Directory('${root.path}/logs');
     await dir.create(recursive: true);
     _file = File('${dir.path}/doudizhu.log');
