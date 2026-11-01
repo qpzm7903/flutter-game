@@ -4,7 +4,7 @@ Flutter + Flame 中文离线斗地主：一名玩家与两名本地电脑对战�
 
 支持经典叫分、完整牌型、提示出牌、炸弹与春天结算、轻松/标准难度、最近 20 局战绩，以及三道独立记录通关状态的残局练习。
 
-[在线试玩](https://qpzm7903.github.io/flutter-game/) · [下载各平台版本](https://github.com/qpzm7903/flutter-game/releases)
+[在线试玩](https://qpzm7903.github.io/flutter-game/) · [下载最新版 0.3.1](https://github.com/qpzm7903/flutter-game/releases/tag/v0.3.1)
 
 点击手牌选中后出牌；提示只选牌，仍需确认。右上角菜单包含重新发牌、难度设置、最近战绩、残局练习、玩法和诊断。难度设置从下一局生效，练习不计入普通积分与战绩。
 
