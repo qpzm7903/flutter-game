@@ -41,7 +41,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
   testWidgets('history loads valid records and skips damaged entries', (tester) async {
-    final record = GameRecord(time: DateTime(2026, 11, 1), landlord: false,
+    final record = GameRecord(time: DateTime(2026, 11), landlord: false,
       won: true, score: 6, difficulty: Difficulty.standard);
     SharedPreferences.setMockInitialValues({'history': ['bad', record.encode()]});
     await tester.pumpWidget(const LandlordApp());
