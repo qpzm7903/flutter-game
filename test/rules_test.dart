@@ -49,7 +49,7 @@ void main() {
   });
   test('deals unique cards and grants landlord bottom cards', () {
     final m = Match(random: Random(7));
-    expect([...m.hands.expand((h) => h), ...m.bottom].toSet().length, 54);
+    expect({...m.hands.expand((h) => h), ...m.bottom}.length, 54);
     expect(m.bid(1, 3), isFalse);
     expect(m.bid(0, 3), isTrue);
     expect(m.hands[0].length, 20);

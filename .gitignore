@@ -52,3 +52,6 @@ Thumbs.db
 .env.*
 secrets/
 coverage/
+
+# Browser verification output
+.playwright-mcp/

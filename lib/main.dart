@@ -189,7 +189,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
       OutlinedButton(onPressed: () async {
         await Clipboard.setData(ClipboardData(text: '${AppLog.location}\n${AppLog.text}'));
       }, child: const Text('复制诊断')),
-      if (kIsWeb) OutlinedButton(onPressed: AppLog.download, child: const Text('下载日志')),
+      if (kIsWeb) const OutlinedButton(onPressed: AppLog.download, child: const Text('下载日志')),
     ]), const SizedBox(height: 12), SelectableText(AppLog.text, style: const TextStyle(fontSize: 12)),
   ]));
 
@@ -214,7 +214,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
       ]);
     })),
   );
-  Widget _header(bool wide) => Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+  Widget _header(bool wide) => Row(children: [
     const Icon(Icons.style_rounded, color: gold, size: 28), const SizedBox(width: 10),
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('闲庭斗地主', style: TextStyle(color: cream, fontSize: wide ? 28 : 22, fontWeight: FontWeight.w700)),

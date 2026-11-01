@@ -36,7 +36,7 @@ class Match {
 
   bool bid(int player, int score) {
     if (phase != Phase.bidding || turn != player || score < 0 || score > 3 ||
-        (score > 0 && score <= highestBid)) return false;
+        (score > 0 && score <= highestBid)) { return false; }
     actions[player] = score == 0 ? '不叫' : '叫 $score 分';
     if (score > highestBid) { highestBid = score; bidder = player; }
     bidsMade++;
