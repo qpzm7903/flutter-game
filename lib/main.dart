@@ -37,6 +37,7 @@ class LandlordApp extends StatelessWidget {
     theme: ThemeData(
       useMaterial3: true, brightness: Brightness.dark,
       fontFamily: !kIsWeb && defaultTargetPlatform == TargetPlatform.windows ? 'Microsoft YaHei UI' : null,
+      fontFamilyFallback: kIsWeb ? const ['OfflineChinese'] : null,
       colorScheme: ColorScheme.fromSeed(seedColor: gold, brightness: Brightness.dark,
         primary: gold, surface: const Color(0xFF092B26)),
       scaffoldBackgroundColor: const Color(0xFF092B26),

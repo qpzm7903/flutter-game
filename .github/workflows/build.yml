@@ -347,7 +347,10 @@ jobs:
           set -euo pipefail
           zip_name="${{ env.APP_NAME }}-${{ needs.metadata.outputs.app_version }}-web.zip"
           rm -f "$zip_name"
-          ( cd build/web && zip -qr "$GITHUB_WORKSPACE/$zip_name" . )
+          # Release ZIP 使用相对根路径，Pages 仍保留原版本路径。
+          cp -a build/web build/web-package
+          sed -i 's|<base href="[^"]*">|<base href="./">|' build/web-package/index.html
+          ( cd build/web-package && zip -qr "$GITHUB_WORKSPACE/$zip_name" . )
           du -sh "$zip_name"
           unzip -l "$zip_name" | tail -5
 

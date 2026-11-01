@@ -19,3 +19,10 @@ dev_dependencies:
   flutter_lints: 6.0.0
 flutter:
   uses-material-design: true
+  fonts:
+    - family: OfflineChinese
+      fonts:
+        - asset: assets/fonts/ChineseFallback0.ttf
+          weight: 400
+        - asset: assets/fonts/ChineseFallback1.ttf
+          weight: 700
