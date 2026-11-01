@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_info.dart';
 import 'game/cards.dart';
 import 'game/match.dart';
+import 'game/game_record.dart';
 import 'game/table_game.dart';
 import 'services/app_log.dart';
 
@@ -58,6 +59,8 @@ class TablePage extends StatefulWidget {
 
 class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   Match match = Match();
+  Difficulty nextDifficulty = Difficulty.standard;
+  final List<GameRecord> history = [];
   final TableGame surface = TableGame();
   final Set<PlayingCard> selected = {};
   Timer? timer;
@@ -79,6 +82,12 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
       final p = await SharedPreferences.getInstance();
       if (!mounted) return;
       prefs = p;
+      nextDifficulty = Difficulty.values.firstWhere((d) => d.name == p.getString('difficulty'),
+        orElse: () => Difficulty.standard);
+      match = Match(difficulty: nextDifficulty);
+      for (final text in (p.getStringList('history') ?? []).take(20)) {
+        try { history.add(GameRecord.decode(text)); } catch (e, s) { AppLog.error(e, s); }
+      }
       final stored = p.getStringList('stats') ?? [];
       if (stored.length == 3) {
         totalScore = int.tryParse(stored[0]) ?? 0;
@@ -115,9 +124,16 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     if (match.phase == Phase.finished && !recorded) {
       recorded = true;
       totalScore += match.scores[0]; games++; if (match.humanWon) wins++;
+      history.insert(0, GameRecord(time: DateTime.now(), landlord: match.landlord == 0,
+        won: match.humanWon, score: match.scores[0], difficulty: match.difficulty));
+      if (history.length > 20) history.removeRange(20, history.length);
+      final recent = history.map((record) => record.encode()).toList();
       final snapshot = ['$totalScore', '$games', '$wins'];
       saves = saves.then((_) async {
         if (prefs != null && !await prefs!.setStringList('stats', snapshot)) {
+          throw StateError('战绩保存失败');
+        }
+        if (prefs != null && !await prefs!.setStringList('history', recent)) {
           throw StateError('战绩保存失败');
         }
       }).catchError((Object e, StackTrace s) { AppLog.error(e, s); });
@@ -148,7 +164,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
   }
   void _restart() {
     timer?.cancel();
-    setState(() { match = Match(); selected.clear(); recorded = false; message = '新牌局开始，请叫分'; });
+    setState(() { match = Match(difficulty: nextDifficulty); selected.clear(); recorded = false; message = '新牌局开始，请叫分'; });
     AppLog.info('重新开始牌局'); _schedule();
   }
   Future<void> _dialog(String title, Widget content) async {
@@ -175,6 +191,32 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
     if (!background) surface.resumeEngine();
     if (restart == true) { _restart(); } else { _schedule(); }
   }
+  void _settings() => _dialog('难度设置', StatefulBuilder(builder: (context, refresh) =>
+    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('当前牌局：${match.difficulty.label}'), const SizedBox(height: 12),
+      DropdownButton<Difficulty>(value: nextDifficulty, isExpanded: true,
+        items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.label))).toList(),
+        onChanged: (value) {
+          if (value == null) return;
+          setState(() => nextDifficulty = value); refresh(() {});
+          saves = saves.then((_) async {
+            if (prefs != null && !await prefs!.setString('difficulty', value.name)) {
+              throw StateError('难度保存失败');
+            }
+          }).catchError((Object e, StackTrace s) { AppLog.error(e, s); });
+          AppLog.info('下局难度 ${value.name}');
+        }),
+      const SizedBox(height: 12),
+      const Text('下局生效。轻松电脑优先从小单张开始；标准电脑会组织长牌、配合队友，并关注对手剩余牌数。'),
+    ])));
+  void _history() => _dialog('最近战绩', history.isEmpty
+    ? const Text('还没有已完成的牌局。完成一局后，这里会记录最近 20 局的结果。')
+    : Column(children: history.map((record) => ListTile(contentPadding: EdgeInsets.zero,
+      title: Text('${record.won ? '胜利' : '失利'} · ${record.landlord ? '地主' : '农民'} · ${record.difficulty.label}'),
+      subtitle: Text(record.time.toLocal().toIso8601String().substring(0, 16).replaceFirst('T', ' ')),
+      trailing: Text('${record.score > 0 ? '+' : ''}${record.score} 分',
+        style: const TextStyle(color: gold)),
+    )).toList()));
   void _rules() => _dialog('经典三人斗地主', const Text(
     '一副 54 张牌，每人 17 张，地主额外获得 3 张底牌。轮流叫 1、2、3 分，只能加叫或不叫；3 分立即确定地主，全不叫则重发。\n\n'
     '地主先出。单张、对子、三张、三带一、三带一对、顺子（至少 5 张）、连对（至少 3 对）、飞机、飞机带单/对、四带二单/两对均可出。顺子、连对和飞机主体不能含 2 或王。\n\n'
@@ -208,7 +250,7 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
             _hand(wide), const SizedBox(height: 12), _controls(), const SizedBox(height: 12),
             Semantics(liveRegion: true, child: Text(message, textAlign: TextAlign.center,
               style: const TextStyle(color: gold, height: 1.5))),
-            const SizedBox(height: 16), Text('离线单机  ·  本机战绩 $wins 胜 / $games 局  ·  积分 $totalScore',
+            const SizedBox(height: 16), Text('离线单机 · ${match.difficulty.label}  ·  本机战绩 $wins 胜 / $games 局  ·  积分 $totalScore',
               textAlign: TextAlign.center, style: const TextStyle(color: pale, fontSize: 12)),
           ])),
         )),
@@ -221,9 +263,22 @@ class _TablePageState extends State<TablePage> with WidgetsBindingObserver {
       Text('闲庭斗地主', style: TextStyle(color: cream, fontSize: wide ? 28 : 22, fontWeight: FontWeight.w700)),
       const Text('一桌好牌，片刻闲趣', style: TextStyle(color: pale, fontSize: 12)),
     ])),
-    IconButton(tooltip: '重新发牌', onPressed: statsReady ? _newGame : null, icon: const Icon(Icons.refresh)),
-    IconButton(tooltip: '玩法说明', onPressed: _rules, icon: const Icon(Icons.help_outline)),
-    IconButton(tooltip: '诊断日志', onPressed: _logs, icon: const Icon(Icons.receipt_long_outlined)),
+    PopupMenuButton<String>(tooltip: '牌桌菜单', icon: const Icon(Icons.more_vert),
+      onSelected: (value) {
+        switch (value) {
+          case 'new': if (statsReady) _newGame();
+          case 'settings': if (statsReady) _settings();
+          case 'history': if (statsReady) _history();
+          case 'rules': _rules();
+          case 'logs': _logs();
+        }
+      }, itemBuilder: (context) => const [
+        PopupMenuItem(value: 'new', child: Text('重新发牌')),
+        PopupMenuItem(value: 'settings', child: Text('难度设置')),
+        PopupMenuItem(value: 'history', child: Text('最近战绩')),
+        PopupMenuItem(value: 'rules', child: Text('玩法说明')),
+        PopupMenuItem(value: 'logs', child: Text('诊断日志')),
+      ]),
   ]);
   Widget _opponent(int player) {
     final active = match.turn == player && match.phase != Phase.finished;

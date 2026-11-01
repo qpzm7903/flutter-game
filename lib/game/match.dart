@@ -1,10 +1,17 @@
 import 'dart:math';
 import 'cards.dart';
 
+enum Difficulty {
+  easy('轻松'), standard('标准');
+  const Difficulty(this.label);
+  final String label;
+}
+
 enum Phase { bidding, playing, finished }
 
 class Match {
   final Random random;
+  final Difficulty difficulty;
   List<List<PlayingCard>> hands = [[], [], []];
   List<PlayingCard> bottom = [];
   final List<String> actions = ['', '', ''];
@@ -16,7 +23,7 @@ class Match {
   Combination? target;
   bool spring = false;
   int deals = 0;
-  Match({Random? random}) : random = random ?? Random() { deal(); }
+  Match({Random? random, this.difficulty = Difficulty.standard}) : random = random ?? Random() { deal(); }
 
   void deal() {
     final deck = List.generate(54, PlayingCard.new)..shuffle(random);
@@ -105,12 +112,17 @@ class Match {
     return true;
   }
 
-  List<PlayingCard> suggest(int player, {bool cooperate = false}) {
+  List<PlayingCard> suggest(int player, {bool cooperate = false, bool simple = false}) {
     final moves = legalMoves(hands[player], target);
     if (moves.isEmpty) return [];
     // Decide using own cards and public roles/counts only; never inspect an opponent's cards.
     final winning = moves.where((m) => m.length == hands[player].length);
     if (winning.isNotEmpty) return winning.first;
+    if (simple && target == null) {
+      final singles = moves.where((m) => m.length == 1).toList()
+        ..sort((a, b) => a.single.rank.compareTo(b.single.rank));
+      return singles.first;
+    }
     if (cooperate && target != null && player != landlord && lastPlayer != landlord) return [];
     if (target?.type == HandType.single &&
         List.generate(3, (i) => i).any((i) => i != player && hands[i].length == 1 &&
@@ -124,7 +136,8 @@ class Match {
   void computerStep() {
     if (phase == Phase.bidding) { bid(turn, computerBid(turn)); return; }
     if (phase != Phase.playing) return;
-    final move = suggest(turn, cooperate: true);
+    final move = suggest(turn, cooperate: difficulty == Difficulty.standard,
+      simple: difficulty == Difficulty.easy);
     if (move.isEmpty) { pass(turn); } else { play(turn, move); }
   }
 
