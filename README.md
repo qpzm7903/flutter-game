@@ -2,7 +2,7 @@
 
 Flutter + Flame 开发的中文离线斗地主，一名玩家与两名本地电脑对战。支持 Windows 10+、Android 手机/折叠屏/平板和 Web。无账号、广告、联网对战或真钱功能。
 
-## 0.1.0（开发中，尚未发布）
+## 0.1.0
 
 - 三人叫分、地主底牌、完整经典牌型、提示出牌、农民合作策略。
 - 炸弹翻倍、春天/反春天、阵营结算及本机积分战绩。
@@ -16,6 +16,8 @@ Flutter + Flame 开发的中文离线斗地主，一名玩家与两名本地电�
 
 仅在 `main` 开发，所有 Flutter 分析、测试、构建在 Actions 执行，不要求本地安装 SDK。首版参考 [flutter-snake](https://github.com/g-ai-002/flutter-snake)（MIT），保留其授权与 GitHub/Gitea 构建发布结构。Android SDK：min 35 / target 37 / compile 37。
 
-GitHub 手动运行构建完成验证后，推送 `v0.1.0` 标签触发三端 Release。发布地址：[Releases](https://github.com/qpzm7903/flutter-game/releases)。具体 CI 状态与配置差异记录于 [plan.md](plan.md)。
+GitHub CI 已通过 14 个测试及三端构建；`v0.1.0` 标签触发正式 Release。发布地址：[Releases](https://github.com/qpzm7903/flutter-game/releases)。具体 CI 状态与配置差异记录于 [plan.md](plan.md)。
 
 Web ZIP 解压后可用现有静态服务器访问；渲染资源和中文后备字体均随包提供。字体来自 Noto Sans SC，采用 OFL 许可，见 `assets/fonts/OFL.txt`；不在运行时调用字体服务。
+
+验证覆盖 50 局随机模拟、320/360/800/1400 宽度布局、日志轮转，以及浏览器完整离线牌局与日志下载。Windows/Android 已完成 CI 构建，尚未在本次环境中进行真机安装测试。
